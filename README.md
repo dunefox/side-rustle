@@ -1,4 +1,4 @@
-# Side Rustle (alpha version)
+# Side Rustle (WIP)
 
 A simple tool for making async calls to a cli program. The goal is to replicate calls from log files and recreate traffic between environments to help debugging/benchmarking.
 
