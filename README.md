@@ -2,6 +2,21 @@
 
 A simple tool for making async calls to a cli program. The goal is to replicate calls from log files and recreate traffic between environments to help debugging/benchmarking.
 
+Sample cli program:
+
+```python
+#!/usr/bin/python3
+import sys, random
+
+if __name__ == '__main__':
+    print(
+        random.choice(
+            ["{\"success\": true}", "{\"success\": false}"]
+        )
+    )
+```
+
+Sample output:
 ```text
 result={"success": false}
 
