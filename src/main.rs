@@ -39,7 +39,6 @@ impl CliCall {
 }
 
 fn statistics(call_results: &Vec<CliCall>) -> String {
-    // let json_results = call_results.map(|result| json::parse(result));
     let mut successful = 0;
     let mut failed = 0;
 
