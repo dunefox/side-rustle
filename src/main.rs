@@ -68,7 +68,6 @@ async fn main() {
     let lines = fs::read_to_string(args.path)
         .expect("Something went wrong reading the file");
     let commands = lines.split("\n");
-        // .map(|line| json::parse(line));
     let items: Vec<_> = commands.map(|line| CliCall {
         call: line.split(" ").map(|s| s.to_string()).collect(),
         result: "".to_string()
