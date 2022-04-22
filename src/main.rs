@@ -1,21 +1,22 @@
 use indicatif::ProgressBar;
 use clap::Parser;
-use std::fs;
+use std::{fs, thread};
 use json;
 use std::process::{Command};
 use std::time::Duration;
-use tokio;
 
 #[derive(Parser)]
 struct Cli {
+    /// Path to the cli programm
+    cli_path: String,
     /// Path to the commands to run
-    path: String,
+    command_path: String,
     /// Time delta between calls
     delta_t: u64
 }
 
-async fn cli_call(params: &Vec<String>) -> String {
-    let result = Command::new("./cli.py")
+fn cli_call(cmd: &String, params: &Vec<String>) -> String {
+    let result = Command::new(cmd)
         .args(params)
         .output()
         .expect("failed to execute process");
@@ -24,13 +25,14 @@ async fn cli_call(params: &Vec<String>) -> String {
 }
 
 struct CliCall {
+    cmd: String,
     call: Vec<String>,
     result: String
 }
 
 impl CliCall {
-    async fn resolve(&mut self) {
-        self.result = cli_call(&self.call).await.parse().unwrap();
+    fn resolve(&mut self) {
+        self.result = cli_call(&self.cmd, &self.call).parse().unwrap();
     }
 
     fn print_result(&self) {
@@ -61,39 +63,50 @@ fn statistics(call_results: &Vec<CliCall>) -> String {
     )
 }
 
-#[tokio::main]
-async fn main() {
+fn log_results(results: &Vec<CliCall>) {
+    let content = results.iter().map(|el| {
+        el.result.to_string()
+    }).collect::<Vec<String>>().join("");
+
+    fs::write(
+        "results.txt",
+        content
+    ).expect("Unable to write file");
+}
+
+fn main() {
     let args = Cli::parse();
-    let lines = fs::read_to_string(args.path)
+    let lines = fs::read_to_string(args.command_path)
         .expect("Something went wrong reading the file");
     let commands = lines.split("\n");
     let items: Vec<_> = commands.map(|line| CliCall {
+        cmd: args.cli_path.clone(),
         call: line.split(" ").map(|s| s.to_string()).collect(),
         result: "".to_string()
     }).collect();
-    let tasks: Vec<_> = items
-        .into_iter()
-        .map(|mut item| {
-            tokio::spawn(async {
-                item.resolve().await;
-                item
-            })
-        })
-        .collect();
-    let mut results = vec![];
-    let pb = ProgressBar::new(tasks.len() as u64);
+    let mut tasks = vec![];
+    let pb = ProgressBar::new(items.len() as u64);
 
-    for task in tasks {
-        results.push(task.await.unwrap());
-        tokio::time::sleep(Duration::from_millis(args.delta_t)).await;
+    for mut item in items {
+        let fut = thread::spawn(
+            || {
+                item.resolve();
+                item
+            }
+        );
+        tasks.push(fut);
+        thread::sleep(Duration::from_millis(args.delta_t));
         pb.inc(1);
     }
 
-    pb.finish_with_message("done");
+    let results = tasks.into_iter()
+        .map(|task| {
+            let call_result = task.join().unwrap();
+            call_result.print_result();
+            call_result
+        }).collect();
 
-    for item in results.iter() {
-        item.print_result();
-    }
-
+    pb.finish_with_message("All tasks started, awaiting completion...");
+    log_results(&results);
     println!("{}", statistics(&results))
 }
