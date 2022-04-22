@@ -6,12 +6,14 @@ Sample cli program:
 
 ```python
 #!/usr/bin/python3
-import sys, random
+import sys, random, time, random, json
 
 if __name__ == '__main__':
+    duration = random.choice(range(2, 5))
+    time.sleep(duration)
     print(
         random.choice(
-            ["{\"success\": true}", "{\"success\": false}"]
+            [json.dumps({"success": True, "slept": duration}), json.dumps({"success": False, "slept": duration})]
         )
     )
 ```
@@ -28,8 +30,12 @@ Made 3 calls
   successful: 1, failed 2 (33.3%)
 ```
 
+Parameters:
+1) Program to run
+2) Parameters to apply
+3) Nap time between calls
+
 To do:
 * Parse log files
-* Logging
 * More sophisticated time deltas
 * ...
